@@ -1,0 +1,1475 @@
+openapi: 3.0.3
+info:
+  title: PTITDAM Orchestrator API
+  description: REST API for the PTITDAM Orchestrator system. The API provides comprehensive CRUD operations for managing workflows, variables, node types, and workflow nodes.
+  version: 1.0.0
+  contact:
+    name: PTITDAM Orchestrator Team
+    email: ptitdam2001@gmail.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.ptitdam-orchestrator.com/v1
+    description: Production server
+  - url: https://staging-api.ptitdam-orchestrator.com/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /workflows:
+    get:
+      summary: Get all workflows
+      description: Retrieve a paginated list of workflows with optional filtering and search
+      operationId: getWorkflows
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: search
+          in: query
+          description: Search workflows by name or description
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter by workflow category
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of workflows retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create a new workflow
+      description: Create a new workflow with the provided configuration
+      operationId: createWorkflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkflowRequest"
+      responses:
+        "201":
+          description: Workflow created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workflow"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /workflows/{id}:
+    get:
+      summary: Get workflow by ID
+      description: Retrieve a specific workflow by its ID, including its nodes
+      operationId: getWorkflowById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Workflow ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Workflow retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowWithNodes"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      summary: Update workflow
+      description: Update an existing workflow with new configuration
+      operationId: updateWorkflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Workflow ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkflowRequest"
+      responses:
+        "200":
+          description: Workflow updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workflow"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete workflow
+      description: Delete a workflow and all its associated nodes
+      operationId: deleteWorkflow
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Workflow ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Workflow deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /workflows/bulk:
+    post:
+      summary: Bulk create workflows
+      description: Create multiple workflows in a single request
+      operationId: bulkCreateWorkflows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkCreateWorkflowsRequest"
+      responses:
+        "201":
+          description: Workflows created successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workflow"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /workflows/{workflow_id}/nodes:
+    get:
+      summary: Get workflow nodes
+      description: Retrieve all nodes for a specific workflow
+      operationId: getWorkflowNodes
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          description: Workflow ID
+          schema:
+            type: string
+            format: uuid
+        - name: category
+          in: query
+          description: Filter by node category
+          required: false
+          schema:
+            type: string
+            enum: [input, processing, output, control]
+        - name: type
+          in: query
+          description: Filter by node type
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Workflow nodes retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowNodeListResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create workflow node
+      description: Create a new node within a workflow
+      operationId: createWorkflowNode
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          description: Workflow ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkflowNodeRequest"
+      responses:
+        "201":
+          description: Workflow node created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowNode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /workflows/{workflow_id}/nodes/{node_id}:
+    get:
+      summary: Get workflow node by ID
+      description: Retrieve a specific node within a workflow
+      operationId: getWorkflowNodeById
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          description: Workflow ID
+          schema:
+            type: string
+            format: uuid
+        - name: node_id
+          in: path
+          required: true
+          description: Node ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Workflow node retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowNode"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      summary: Update workflow node
+      description: Update an existing node within a workflow
+      operationId: updateWorkflowNode
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          description: Workflow ID
+          schema:
+            type: string
+            format: uuid
+        - name: node_id
+          in: path
+          required: true
+          description: Node ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkflowNodeRequest"
+      responses:
+        "200":
+          description: Workflow node updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowNode"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete workflow node
+      description: Delete a node from a workflow
+      operationId: deleteWorkflowNode
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          description: Workflow ID
+          schema:
+            type: string
+            format: uuid
+        - name: node_id
+          in: path
+          required: true
+          description: Node ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Workflow node deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /variables:
+    get:
+      summary: Get all variables
+      description: Retrieve a paginated list of variables with optional filtering
+      operationId: getVariables
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: search
+          in: query
+          description: Search variables by name
+          required: false
+          schema:
+            type: string
+        - name: scope
+          in: query
+          description: Filter by variable scope
+          required: false
+          schema:
+            type: string
+            enum: [global, workflow]
+      responses:
+        "200":
+          description: List of variables retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VariableListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create a new variable
+      description: Create a new variable with the provided configuration
+      operationId: createVariable
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVariableRequest"
+      responses:
+        "201":
+          description: Variable created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Variable"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /variables/{id}:
+    get:
+      summary: Get variable by ID
+      description: Retrieve a specific variable by its ID
+      operationId: getVariableById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Variable ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Variable retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Variable"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      summary: Update variable
+      description: Update an existing variable
+      operationId: updateVariable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Variable ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVariableRequest"
+      responses:
+        "200":
+          description: Variable updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Variable"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete variable
+      description: Delete a variable
+      operationId: deleteVariable
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Variable ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Variable deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /variables/bulk:
+    put:
+      summary: Bulk update variables
+      description: Update multiple variables in a single request
+      operationId: bulkUpdateVariables
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkUpdateVariablesRequest"
+      responses:
+        "200":
+          description: Variables updated successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Variable"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /node-types:
+    get:
+      summary: Get all node types
+      description: Retrieve a paginated list of node types with optional filtering
+      operationId: getNodeTypes
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: search
+          in: query
+          description: Search node types by name
+          required: false
+          schema:
+            type: string
+        - name: category
+          in: query
+          description: Filter by node category
+          required: false
+          schema:
+            type: string
+            enum: [action, transformation, output, control]
+      responses:
+        "200":
+          description: List of node types retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeTypeListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    post:
+      summary: Create a new node type
+      description: Create a new node type with the provided configuration
+      operationId: createNodeType
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNodeTypeRequest"
+      responses:
+        "201":
+          description: Node type created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeType"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /node-types/{id}:
+    get:
+      summary: Get node type by ID
+      description: Retrieve a specific node type by its ID
+      operationId: getNodeTypeById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Node type ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Node type retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeType"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      summary: Update node type
+      description: Update an existing node type
+      operationId: updateNodeType
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Node type ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNodeTypeRequest"
+      responses:
+        "200":
+          description: Node type updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeType"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      summary: Delete node type
+      description: Delete a node type
+      operationId: deleteNodeType
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Node type ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Node type deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /webhooks:
+    post:
+      summary: Configure webhook
+      description: Configure a webhook for receiving events
+      operationId: configureWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebhookRequest"
+      responses:
+        "201":
+          description: Webhook configured successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Webhook"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /openapi.json:
+    get:
+      summary: Get OpenAPI specification
+      description: Retrieve the complete OpenAPI specification in JSON format
+      operationId: getOpenApiSpec
+      responses:
+        "200":
+          description: OpenAPI specification retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for API authentication
+
+  schemas:
+    Workflow:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - inputs
+        - outputs
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the workflow
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          maxLength: 255
+          description: Human-readable name of the workflow
+          example: "Data Processing Pipeline"
+        description:
+          type: string
+          description: Detailed description of the workflow's purpose and functionality
+          example: "A workflow for processing and transforming data from multiple sources"
+        inputs:
+          type: object
+          description: Input parameters schema and configuration for the workflow
+          example:
+            source_files:
+              type: "array"
+              required: true
+            output_format:
+              type: "string"
+              default: "json"
+        outputs:
+          type: object
+          description: Output parameters schema and expected results
+          example:
+            processed_data:
+              type: "object"
+            statistics:
+              type: "object"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:30:00Z"
+
+    WorkflowWithNodes:
+      allOf:
+        - $ref: "#/components/schemas/Workflow"
+        - type: object
+          properties:
+            nodes:
+              type: array
+              items:
+                $ref: "#/components/schemas/WorkflowNode"
+              description: List of nodes in the workflow
+
+    WorkflowListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Workflow"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    CreateWorkflowRequest:
+      type: object
+      required:
+        - name
+        - description
+        - inputs
+        - outputs
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Human-readable name of the workflow
+          example: "Data Processing Pipeline"
+        description:
+          type: string
+          description: Detailed description of the workflow's purpose and functionality
+          example: "A workflow for processing and transforming data from multiple sources"
+        inputs:
+          type: object
+          description: Input parameters schema and configuration for the workflow
+          example:
+            source_files:
+              type: "array"
+              required: true
+            output_format:
+              type: "string"
+              default: "json"
+        outputs:
+          type: object
+          description: Output parameters schema and expected results
+          example:
+            processed_data:
+              type: "object"
+            statistics:
+              type: "object"
+
+    WorkflowNode:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - type
+        - category
+        - inputs
+        - outputs
+        - workflow_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the workflow node
+          example: "550e8400-e29b-41d4-a716-446655440003"
+        name:
+          type: string
+          maxLength: 255
+          description: Human-readable name of the node
+          example: "Fetch User Data"
+        description:
+          type: string
+          description: Detailed description of the node's purpose
+          example: "Retrieves user information from external API"
+        type:
+          type: string
+          maxLength: 255
+          description: Type of the node (references node_types.name)
+          example: "HTTP Request"
+        category:
+          type: string
+          maxLength: 100
+          description: Category classification
+          enum: [input, processing, output, control]
+          example: "input"
+        inputs:
+          type: object
+          description: Input parameters and configuration for this specific node instance
+          example:
+            url: "https://api.example.com/users/{user_id}"
+            method: "GET"
+            headers:
+              Authorization: "Bearer {token}"
+        outputs:
+          type: object
+          description: Output parameters and expected results for this node
+          example:
+            user_data:
+              type: "object"
+            status_code:
+              type: "integer"
+        workflow_id:
+          type: string
+          format: uuid
+          description: Foreign key to workflows.id
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        previous_node:
+          type: string
+          format: uuid
+          nullable: true
+          description: Foreign key to workflow_nodes.id (nullable for start nodes)
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:30:00Z"
+
+    WorkflowNodeListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowNode"
+
+    CreateWorkflowNodeRequest:
+      type: object
+      required:
+        - name
+        - description
+        - type
+        - category
+        - inputs
+        - outputs
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Human-readable name of the node
+          example: "Fetch User Data"
+        description:
+          type: string
+          description: Detailed description of the node's purpose
+          example: "Retrieves user information from external API"
+        type:
+          type: string
+          maxLength: 255
+          description: Type of the node (references node_types.name)
+          example: "HTTP Request"
+        category:
+          type: string
+          maxLength: 100
+          description: Category classification
+          enum: [input, processing, output, control]
+          example: "input"
+        inputs:
+          type: object
+          description: Input parameters and configuration for this specific node instance
+          example:
+            url: "https://api.example.com/users/{user_id}"
+            method: "GET"
+            headers:
+              Authorization: "Bearer {token}"
+        outputs:
+          type: object
+          description: Output parameters and expected results for this node
+          example:
+            user_data:
+              type: "object"
+            status_code:
+              type: "integer"
+        previous_node:
+          type: string
+          format: uuid
+          nullable: true
+          description: Foreign key to workflow_nodes.id (nullable for start nodes)
+          example: null
+
+    Variable:
+      type: object
+      required:
+        - id
+        - name
+        - value
+        - scope
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the variable
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        name:
+          type: string
+          maxLength: 255
+          description: Variable name (must be unique within scope)
+          example: "API_ENDPOINT"
+        value:
+          type: string
+          description: Variable value (can be JSON for complex data)
+          example: "https://api.example.com/v1"
+        scope:
+          type: string
+          enum: [global, workflow]
+          description: Variable scope
+          example: "global"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:30:00Z"
+
+    VariableListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Variable"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    CreateVariableRequest:
+      type: object
+      required:
+        - name
+        - value
+        - scope
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Variable name (must be unique within scope)
+          example: "API_ENDPOINT"
+        value:
+          type: string
+          description: Variable value (can be JSON for complex data)
+          example: "https://api.example.com/v1"
+        scope:
+          type: string
+          enum: [global, workflow]
+          description: Variable scope
+          example: "global"
+
+    NodeType:
+      type: object
+      required:
+        - id
+        - name
+        - properties
+        - category
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the node type
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        name:
+          type: string
+          maxLength: 255
+          description: Human-readable name of the node type
+          example: "HTTP Request"
+        properties:
+          type: object
+          description: Configuration schema and properties for this node type
+          example:
+            url:
+              type: "string"
+              required: true
+            method:
+              type: "string"
+              enum: ["GET", "POST", "PUT", "DELETE"]
+              default: "GET"
+            headers:
+              type: "object"
+              default: {}
+            body:
+              type: "object"
+              required: false
+        category:
+          type: string
+          enum: [action, transformation, output, control]
+          description: Node type category
+          example: "action"
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2024-01-15T10:30:00Z"
+
+    NodeTypeListResponse:
+      type: object
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/NodeType"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    CreateNodeTypeRequest:
+      type: object
+      required:
+        - name
+        - properties
+        - category
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Human-readable name of the node type
+          example: "HTTP Request"
+        properties:
+          type: object
+          description: Configuration schema and properties for this node type
+          example:
+            url:
+              type: "string"
+              required: true
+            method:
+              type: "string"
+              enum: ["GET", "POST", "PUT", "DELETE"]
+              default: "GET"
+            headers:
+              type: "object"
+              default: {}
+            body:
+              type: "object"
+              required: false
+        category:
+          type: string
+          enum: [action, transformation, output, control]
+          description: Node type category
+          example: "action"
+
+    BulkCreateWorkflowsRequest:
+      type: object
+      required:
+        - workflows
+      properties:
+        workflows:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateWorkflowRequest"
+          description: Array of workflows to create
+
+    BulkUpdateVariablesRequest:
+      type: object
+      required:
+        - variables
+      properties:
+        variables:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - name
+              - value
+            properties:
+              id:
+                type: string
+                format: uuid
+                description: Variable ID to update
+              name:
+                type: string
+                maxLength: 255
+                description: Variable name
+              value:
+                type: string
+                description: Variable value
+          description: Array of variables to update
+
+    WebhookRequest:
+      type: object
+      required:
+        - url
+        - events
+        - secret
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Webhook URL
+          example: "https://your-app.com/webhook"
+        events:
+          type: array
+          items:
+            type: string
+            enum:
+              [
+                workflow.created,
+                workflow.updated,
+                workflow.deleted,
+                node.created,
+                node.updated,
+                node.deleted,
+              ]
+          description: Events to subscribe to
+          example: ["workflow.created", "workflow.updated"]
+        secret:
+          type: string
+          description: Webhook secret for verification
+          example: "your-webhook-secret"
+
+    Webhook:
+      type: object
+      required:
+        - id
+        - url
+        - events
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Webhook ID
+        url:
+          type: string
+          format: uri
+          description: Webhook URL
+        events:
+          type: array
+          items:
+            type: string
+          description: Subscribed events
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - pages
+      properties:
+        page:
+          type: integer
+          description: Current page number
+          example: 1
+        limit:
+          type: integer
+          description: Number of items per page
+          example: 20
+        total:
+          type: integer
+          description: Total number of items
+          example: 150
+        pages:
+          type: integer
+          description: Total number of pages
+          example: 8
+        has_next:
+          type: boolean
+          description: Whether there is a next page
+          example: true
+        has_previous:
+          type: boolean
+          description: Whether there is a previous page
+          example: false
+
+    DeleteResponse:
+      type: object
+      required:
+        - message
+        - id
+      properties:
+        message:
+          type: string
+          description: Success message
+          example: "Workflow deleted successfully"
+        id:
+          type: string
+          format: uuid
+          description: ID of the deleted resource
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Error code
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              description: Error message
+              example: "Invalid request data"
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    description: Field name with error
+                    example: "name"
+                  message:
+                    type: string
+                    description: Field-specific error message
+                    example: "Name is required"
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: "VALIDATION_ERROR"
+              message: "Invalid request data"
+              details:
+                - field: "name"
+                  message: "Name is required"
+
+    Unauthorized:
+      description: Unauthorized - authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: "UNAUTHORIZED"
+              message: "Authentication required"
+
+    NotFound:
+      description: Not found - resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: "RESOURCE_NOT_FOUND"
+              message: "Requested resource not found"
+
+    Conflict:
+      description: Conflict - resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: "DUPLICATE_RESOURCE"
+              message: "Resource already exists"
+
+    ValidationError:
+      description: Unprocessable entity - validation error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: "VALIDATION_ERROR"
+              message: "Request data validation failed"
+              details:
+                - field: "email"
+                  message: "Invalid email format"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: "INTERNAL_SERVER_ERROR"
+              message: "An unexpected error occurred"
+
+tags:
+  - name: Workflows
+    description: Workflow management operations
+  - name: Variables
+    description: Variable management operations
+  - name: Node Types
+    description: Node type management operations
+  - name: Webhooks
+    description: Webhook configuration operations
