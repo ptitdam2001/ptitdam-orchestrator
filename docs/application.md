@@ -32,7 +32,7 @@ This document describes the frontend application architecture for the PTITDAM Or
 
 ### UI & Forms
 
-- **React Flow**: Workflow visualization and editing
+- **React Flow (@xyflow/react)**: Workflow visualization and editing
 - **React Hook Form**: Performant form handling
 - **Radix UI**: Accessible component primitives
 - **Tailwind CSS**: Utility-first CSS framework
@@ -45,14 +45,14 @@ The application follows DDD principles with clear separation of concerns:
 
 ```
 src/
-├── domains/           # Domain-specific modules
+├── domains/          # Domain-specific modules
 │   ├── workflow/     # Workflow domain
 │   ├── variable/     # Variable domain
 │   ├── node-type/    # Node type domain
 │   └── shared/       # Shared domain logic
 ├── infrastructure/   # External dependencies
 ├── application/      # Use cases and orchestration
-└── presentation/     # UI components and pages
+└── core/             # UI components and pages
 ```
 
 ### Domain Structure
@@ -63,10 +63,10 @@ Each domain follows a consistent structure:
 domains/workflow/
 ├── entities/         # Domain entities
 ├── repositories/     # Data access interfaces
-├── services/        # Domain business logic
-├── use-cases/       # Application use cases
-├── components/      # Domain-specific UI components
-└── types/          # Domain type definitions
+├── services/         # Domain business logic
+├── use-cases/        # Application use cases
+├── components/       # Domain-specific UI components
+└── types/            # Domain type definitions
 ```
 
 ## Domain Modules
@@ -243,17 +243,17 @@ pnpm install
 ```json
 {
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "@tanstack/react-query": "^5.0.0",
-    "@tanstack/router": "^1.0.0",
-    "react-flow-renderer": "^11.0.0",
+    "@tanstack/react-router": "^1.0.0",
+    "@xyflow/react": "^12.8.0",
     "react-hook-form": "^7.0.0",
     "zustand": "^4.0.0"
   },
   "devDependencies": {
-    "vite": "^5.0.0",
-    "vitest": "^1.0.0",
+    "vite": "^7.0.0",
+    "vitest": "^7.0.0",
     "storybook": "^7.0.0",
     "orval": "^6.0.0"
   }
