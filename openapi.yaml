@@ -808,6 +808,11 @@ components:
           type: string
           description: Detailed description of the workflow's purpose and functionality
           example: "A workflow for processing and transforming data from multiple sources"
+        enabled:
+          type: boolean
+          description: Availability status (true by default)
+          example: true
+          default: true
         inputs:
           type: object
           description: Input parameters schema and configuration for the workflow

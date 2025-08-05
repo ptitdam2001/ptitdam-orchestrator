@@ -17,6 +17,7 @@ The `workflows` table stores workflow definitions and their metadata.
 | `description` | TEXT         | Detailed description of the workflow's purpose and functionality |
 | `inputs`      | JSON         | Input parameters schema and configuration for the workflow       |
 | `outputs`     | JSON         | Output parameters schema and expected results                    |
+| `enabled`     | BOOLEAN      | Availability status (true by default)                            |
 
 **Example:**
 
